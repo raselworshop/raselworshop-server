@@ -1,5 +1,4 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -8,13 +7,17 @@ require('dotenv').config();
 const PORT = process.env.PORT || 5000;
 const app = express();
 
-// Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://raselworshop.netlify.app",
+        "https://www.raselworshop.netlify.app"
+    ],
+    
+}))
+
 app.use(bodyParser.json());
 app.use(express.json());
-
-// console.log(`${process.env.EMAIL_MINE}, ${process.env.EMAIL_PASS}`)
-
 
 // MongoDB URI & Client
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5hy3n.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -37,7 +40,8 @@ async function run() {
         const messagesCollection = database.collection('messages'); // Collection name
 
         // API Endpoint: Send Email
-        app.post('/send-email', async (req, res) => {
+        app.post('/email', async (req, res) => {
+
             try {
                 const { name, email, message } = req.body;
 
@@ -57,29 +61,25 @@ async function run() {
                 if (!result.acknowledged) {
                     return res.status(500).send('Failed to save message in database.');
                 }
-                // Configure Nodemailer
-                // const transporter = nodemailer.createTransport({
-                //   host: 'smtp.protonmail.com',
-                //   port: 465,  // SSL পোর্ট
-                //   secure: true,  // SSL সক্রিয় করুন
-                //   auth: {
-                //     user: process.env.EMAIL_MINE, // আপনার Proton Mail ইমেইল
-                //     pass: process.env.EMAIL_PASS, // Proton Mail পাসওয়ার্ড বা অ্যাপ পাসওয়ার্ড
-                //   },
-                // });
-                
 
+                // API Endpoint: Send Email
+                // in production mode need a valid sandbox
+                // try {
+                //     const data = await mg.messages.create(process.env.EMAIL_SENDING_DOMAIN, {
+                //         from: `Mailgun Sandbox <postmaster@${process.env.EMAIL_SENDING_DOMAIN}>`,
+                //         to: ["Md. Rasel mia <raselworshop@gmail.com>"],
+                //         subject: `New Message from ${name}`,
+                //         html: `<div>
+                //                 <h3>Sender: ${email}</h3>
+                //                 <p>Message: ${message}</p>
+                //               </div>`,
+                //     });
 
-                const mailOptions = {
-                    from: email,
-                    to: process.env.EMAIL_MINE, // Your receiving email
-                    subject: `Message from ${name}`,
-                    text: message,
-                };
-
-                // Send Email
-                const info = await transporter.sendMail(mailOptions);
-                res.status(200).send('Message sent: ' + info.response);
+                //     // console.log(data); // logs response data
+                // } catch (error) {
+                //     console.log(error); //logs any error
+                // }
+                res.status(200).send({ success: true, message: "Email send successfull" });
             } catch (error) {
                 // console.error('Error in /send-email:', error);
                 res.status(500).send('Failed to send email. Please try again later.');
@@ -88,11 +88,11 @@ async function run() {
 
     } catch (error) {
         // console.error('Error connecting to MongoDB:', error);
-        process.exit(1);
+        // process.exit(1);
     }
 }
 
-run().catch(console.error);
+run().catch(console.dir);
 
 // Root Endpoint
 app.get('/', (req, res) => {
